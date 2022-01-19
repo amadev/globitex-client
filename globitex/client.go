@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -39,7 +40,7 @@ func getEnvAsInt(key string, defaultVal string) int {
 	return v
 }
 
-var timeout = time.Duration(getEnvAsInt("GLOBITEX_CLIENT_TIMEOUT", "10000")) * time.Second
+var timeout = time.Duration(getEnvAsInt("GLOBITEX_CLIENT_CONNECT_TIMEOUT", "10000")) * time.Second
 
 type Client struct {
 	host              string
@@ -48,7 +49,10 @@ type Client struct {
 	transactionSecret string
 }
 
-type Response string
+type Response struct {
+	body string
+	code int
+}
 
 type Param struct {
 	Key   string
@@ -87,22 +91,36 @@ func stringify(params []Param, urlescape bool) string {
 
 }
 
-func (c *Client) headerSignature(path string, params []Param, nonce string) string {
-	message := fmt.Sprintf("%s&%s%s", c.apiKey, nonce, path)
+func HeaderSignature(apiKey, secret, path, nonce string, params []Param) string {
+	message := fmt.Sprintf("%s&%s%s", apiKey, nonce, path)
 	if len(params) != 0 {
 		message = fmt.Sprintf("%s?%s", message, stringify(params, false))
 	}
-	mac := hmac.New(sha512.New, []byte(c.messageSecret))
+	mac := hmac.New(sha512.New, []byte(secret))
 	mac.Write([]byte(message))
 	return hex.EncodeToString(mac.Sum(nil))
 }
 
-func (c *Client) transactionSignature(params []Param) string {
-	message := stringify(params, false)
-	mac := hmac.New(sha512.New, []byte(c.transactionSecret))
+func TransactionSignature(secret string, params []Param) string {
+	filtered := make([]Param, 0)
+	for _, v := range params {
+		if v.Key == "transactionSignature" {
+			continue
+		}
+		filtered = append(filtered, v)
+	}
+	message := stringify(filtered, false)
+	mac := hmac.New(sha512.New, []byte(secret))
 	mac.Write([]byte(message))
 	return hex.EncodeToString(mac.Sum(nil))
+}
 
+func (c *Client) headerSignature(path, nonce string, params []Param) string {
+	return HeaderSignature(c.apiKey, c.messageSecret, path, nonce, params)
+}
+
+func (c *Client) transactionSignature(params []Param) string {
+	return TransactionSignature(c.transactionSecret, params)
 }
 
 func (c *Client) get(path string, params []Param) (Response, error) {
@@ -111,23 +129,24 @@ func (c *Client) get(path string, params []Param) (Response, error) {
 	baseURL := fmt.Sprintf("%s%s", c.host, path)
 	req, err := http.NewRequest("GET", baseURL, nil)
 	if err != nil {
-		return "", err
+		return Response{}, err
 	}
 	nonce := Nonce()
+	_ = nonce
 	req.Header.Add("X-API-Key", c.apiKey)
 	req.Header.Add("X-Nonce", nonce)
-	req.Header.Add("X-Signature", c.headerSignature(path, params, nonce))
+	req.Header.Add("X-Signature", c.headerSignature(path, nonce, params))
 	req.URL.RawQuery = stringify(params, true)
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", err
+		return Response{}, err
 	}
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", err
+		return Response{}, err
 	}
-	return Response(body), nil
+	return Response{body: string(body), code: resp.StatusCode}, nil
 }
 
 func (c *Client) post(path string, params []Param) (Response, error) {
@@ -135,25 +154,25 @@ func (c *Client) post(path string, params []Param) (Response, error) {
 		Timeout: timeout}
 	params = append(params, Param{"transactionSignature", c.transactionSignature(params)})
 	baseURL := fmt.Sprintf("%s%s", c.host, path)
-	req, err := http.NewRequest("POST", baseURL, nil)
+	req, err := http.NewRequest("POST", baseURL, strings.NewReader(stringify(params, true)))
 	if err != nil {
-		return "", err
+		return Response{}, err
 	}
 	nonce := Nonce()
 	req.Header.Add("X-API-Key", c.apiKey)
 	req.Header.Add("X-Nonce", nonce)
-	req.Header.Add("X-Signature", c.headerSignature(path, params, nonce))
-	req.URL.RawQuery = stringify(params, true)
+	req.Header.Add("X-Signature", c.headerSignature(path, nonce, params))
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", err
+		return Response{}, err
 	}
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", err
+		return Response{}, err
 	}
-	return Response(body), nil
+	return Response{body: string(body), code: resp.StatusCode}, nil
 }
 
 func (c *Client) GetAccountStatus() (Response, error) {
@@ -180,7 +199,7 @@ func (c *Client) GetPaymentCommissionAmount(params []Param) (Response, error) {
 }
 
 func (c *Client) GetPaymentStatus(params []Param) (Response, error) {
-	path := "/api/1/eurowallet/status"
+	path := "/api/1/eurowallet/payments/status"
 	return c.get(path, params)
 }
 

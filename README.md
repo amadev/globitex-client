@@ -1,4 +1,6 @@
-# Golang client for Globitex/Nexpay API
+# Golang client/server tools for Globitex/Nexpay API
+
+## Client
 
 Currenly it partially implements the following subset of API methods.
 
@@ -10,5 +12,20 @@ Nexpay methods:
 - Get Payment History
 - Get Payment Status
 - Get Payment Commission Amount
+
+## Server
+
+Server part provides middleware for validating request signature.
+
+
+## Examples
+
+```
+GLOBITEX_CLIENT_API_KEY=abc
+GLOBITEX_CLIENT_MESSAGE_SECRET=cde
+GLOBITEX_CLIENT_TRANSACTION_SECRET=fgh
+GLOBITEX_CLIENT_HOST=http://localhost:8090
+go run main.go
+```
 
 See example of usage in main.go
