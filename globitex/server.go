@@ -72,8 +72,8 @@ func ValidateRequest(req *http.Request) error {
 			httpCode: 403,
 		}
 	}
-	if req.Header.Get("X-API-Key") != getEnvOrFail("GLOBITEX_CLIENT_API_KEY") {
-		return &ResponseError{
+	if req.Header.Get("X-API-Key") != getEnvOrFail("GLOBITEX_TOOL_API_KEY") {
+		&ResponseError{
 			code:     40,
 			message:  "Invalid API key",
 			httpCode: 403,
@@ -108,8 +108,8 @@ func ValidateRequest(req *http.Request) error {
 	}
 
 	if req.Header.Get("X-Signature") != HeaderSignature(
-		getEnvOrFail("GLOBITEX_CLIENT_API_KEY"),
-		getEnvOrFail("GLOBITEX_CLIENT_MESSAGE_SECRET"),
+		getEnvOrFail("GLOBITEX_TOOL_API_KEY"),
+		getEnvOrFail("GLOBITEX_TOOL_MESSAGE_SECRET"),
 		req.URL.Path,
 		req.Header.Get("X-Nonce"),
 		params,
@@ -134,7 +134,7 @@ func ValidateRequest(req *http.Request) error {
 				httpCode: 400,
 			}
 		}
-		if params[si].Value != TransactionSignature(getEnvOrFail("GLOBITEX_CLIENT_TRANSACTION_SECRET"), params) {
+		if params[si].Value != TransactionSignature(getEnvOrFail("GLOBITEX_TOOL_TRANSACTION_SECRET"), params) {
 			return &ResponseError{
 				code:     80,
 				message:  "Invalid transactionSignature",

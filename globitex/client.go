@@ -40,7 +40,7 @@ func getEnvAsInt(key string, defaultVal string) int {
 	return v
 }
 
-var timeout = time.Duration(getEnvAsInt("GLOBITEX_CLIENT_CONNECT_TIMEOUT", "10000")) * time.Second
+var timeout = time.Duration(getEnvAsInt("GLOBITEX_TOOL_CONNECT_TIMEOUT", "10000")) * time.Second
 
 type Client struct {
 	host              string
@@ -61,10 +61,10 @@ type Param struct {
 
 func NewClient() *Client {
 	return &Client{
-		host:              getEnv("GLOBITEX_CLIENT_HOST", "https://api.globitex.com"),
-		apiKey:            getEnvOrFail("GLOBITEX_CLIENT_API_KEY"),
-		messageSecret:     getEnvOrFail("GLOBITEX_CLIENT_MESSAGE_SECRET"),
-		transactionSecret: getEnvOrFail("GLOBITEX_CLIENT_TRANSACTION_SECRET"),
+		host:              getEnv("GLOBITEX_TOOL_HOST", "https://api.globitex.com"),
+		apiKey:            getEnvOrFail("GLOBITEX_TOOL_API_KEY"),
+		messageSecret:     getEnvOrFail("GLOBITEX_TOOL_MESSAGE_SECRET"),
+		transactionSecret: getEnvOrFail("GLOBITEX_TOOL_TRANSACTION_SECRET"),
 	}
 }
 

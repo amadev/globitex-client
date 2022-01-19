@@ -21,10 +21,10 @@ Server part provides middleware for validating request signature.
 ## Examples
 
 ```
-GLOBITEX_CLIENT_API_KEY=abc
-GLOBITEX_CLIENT_MESSAGE_SECRET=cde
-GLOBITEX_CLIENT_TRANSACTION_SECRET=fgh
-GLOBITEX_CLIENT_HOST=http://localhost:8090
+GLOBITEX_TOOL_API_KEY=abc
+GLOBITEX_TOOL_MESSAGE_SECRET=cde
+GLOBITEX_TOOL_TRANSACTION_SECRET=fgh
+GLOBITEX_TOOL_HOST=http://localhost:8090
 go run main.go
 ```
 
