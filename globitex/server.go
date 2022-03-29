@@ -73,7 +73,7 @@ func ValidateRequest(req *http.Request) error {
 		}
 	}
 	if req.Header.Get("X-API-Key") != getEnvOrFail("GLOBITEX_TOOL_API_KEY") {
-		&ResponseError{
+		return &ResponseError{
 			code:     40,
 			message:  "Invalid API key",
 			httpCode: 403,

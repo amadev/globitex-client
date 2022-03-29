@@ -50,8 +50,8 @@ type Client struct {
 }
 
 type Response struct {
-	body string
-	code int
+	Body string
+	Code int
 }
 
 type Param struct {
@@ -98,6 +98,7 @@ func HeaderSignature(apiKey, secret, path, nonce string, params []Param) string 
 	}
 	mac := hmac.New(sha512.New, []byte(secret))
 	mac.Write([]byte(message))
+	log.Printf("HeaderSignature %s for message %s", hex.EncodeToString(mac.Sum(nil)), message)
 	return hex.EncodeToString(mac.Sum(nil))
 }
 
@@ -135,7 +136,9 @@ func (c *Client) get(path string, params []Param) (Response, error) {
 	_ = nonce
 	req.Header.Add("X-API-Key", c.apiKey)
 	req.Header.Add("X-Nonce", nonce)
-	req.Header.Add("X-Signature", c.headerSignature(path, nonce, params))
+	req.Header.Add("X-Signature", c.headerSignature(
+		strings.TrimPrefix(path, getEnv("GLOBITEX_TOOL_URL_PREFIX", "")), nonce, params))
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	req.URL.RawQuery = stringify(params, true)
 	resp, err := client.Do(req)
 	if err != nil {
@@ -146,7 +149,7 @@ func (c *Client) get(path string, params []Param) (Response, error) {
 	if err != nil {
 		return Response{}, err
 	}
-	return Response{body: string(body), code: resp.StatusCode}, nil
+	return Response{Body: string(body), Code: resp.StatusCode}, nil
 }
 
 func (c *Client) post(path string, params []Param) (Response, error) {
@@ -161,8 +164,17 @@ func (c *Client) post(path string, params []Param) (Response, error) {
 	nonce := Nonce()
 	req.Header.Add("X-API-Key", c.apiKey)
 	req.Header.Add("X-Nonce", nonce)
-	req.Header.Add("X-Signature", c.headerSignature(path, nonce, params))
+	req.Header.Add("X-Signature", c.headerSignature(
+		strings.TrimPrefix(path, getEnv("GLOBITEX_TOOL_URL_PREFIX", "")), nonce, params))
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+	for k, v := range req.Header {
+		fmt.Printf("request header %s %s\n", k, v)
+	}
+	for _, v := range params {
+		fmt.Printf("request param %s %s\n", v.Key, v.Value)
+	}
+
 	resp, err := client.Do(req)
 	if err != nil {
 		return Response{}, err
@@ -172,7 +184,7 @@ func (c *Client) post(path string, params []Param) (Response, error) {
 	if err != nil {
 		return Response{}, err
 	}
-	return Response{body: string(body), code: resp.StatusCode}, nil
+	return Response{Body: string(body), Code: resp.StatusCode}, nil
 }
 
 func (c *Client) GetAccountStatus() (Response, error) {
@@ -199,11 +211,11 @@ func (c *Client) GetPaymentCommissionAmount(params []Param) (Response, error) {
 }
 
 func (c *Client) GetPaymentStatus(params []Param) (Response, error) {
-	path := "/api/1/eurowallet/payments/status"
+	path := getEnv("GLOBITEX_TOOL_URL_PREFIX", "") + "/api/1/eurowallet/payments/status"
 	return c.get(path, params)
 }
 
 func (c *Client) CreateNewPayment(params []Param) (Response, error) {
-	path := "/api/1/eurowallet/payments"
+	path := getEnv("GLOBITEX_TOOL_URL_PREFIX", "") + "/api/1/eurowallet/payments"
 	return c.post(path, params)
 }
