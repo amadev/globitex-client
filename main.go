@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/amadev/globitex-client/globitex"
+	"os"
 )
 
 type Status struct {
@@ -19,10 +20,10 @@ func main() {
 	resp, err := client.CreateNewPayment(
 		[]globitex.Param{
 			globitex.Param{"requestTime", nonce},
-			globitex.Param{"account", "LT833080020000001060"},
-			globitex.Param{"amount", "1.00"},
+			globitex.Param{"account", os.Getenv("GLOBITEX_TOOL_SRC_ACCOUNT")},
+			globitex.Param{"amount", os.Getenv("GLOBITEX_TOOL_AMOUNT")},
 			globitex.Param{"beneficiaryName", "Some beneficiary name"},
-			globitex.Param{"beneficiaryAccount", "LT983250082405215248"},
+			globitex.Param{"beneficiaryAccount", os.Getenv("GLOBITEX_TOOL_DST_ACCOUNT")},
 			globitex.Param{"beneficiaryReference", "Some reference text"},
 		})
 	if err != nil {
